@@ -88,24 +88,15 @@ def SendMailPythonServer(send_to, send_cc, send_bcc, subject, body, files=[]):
 
     print("Mail sent successfully from " + strFrom)
 
-def GetLatestBidUpdateInfo(delDate, mergerName):
-
-    #fileUpdateInfo = delDate + "_" + mergerName +"_UpdateInfo.json"
-
-    #uncPath=os.path.join(folderUpdateInfo, fileUpdateInfo)
-
-    with open(GetLatestBidUpdateInfoFile(delDate, mergerName)) as f:
+def GetLatestBidUpdateInfo(delDate, mergerName, environment):
+    with open(GetLatestBidUpdateInfoFile(delDate, mergerName, environment)) as f:
         d = json.load(f)
-
     return d
 
-def GetLatestBidUpdateInfoFile(delDate, mergerName):
-    fileUpdateInfo = delDate + "_" + mergerName + "_UpdateInfo.json"
-
+def GetLatestBidUpdateInfoFile(delDate, mergerName, environment):
+    fileUpdateInfo = delDate + "_" + mergerName + "_UpdateInfo_" + environment + ".json"
     uncPath = os.path.join(folderUpdateInfo, fileUpdateInfo)
-
     return uncPath
-
 
 exchangeName = str(exchangeName)
 
@@ -113,7 +104,7 @@ daysAhead = int(daysAhead)
 
 environment = str(environment)
 
-#exchangeName = "nordpool_de_IDA2"
+#exchangeName = "nordpool_de_IDA1"
 
 #daysAhead = 1
 
@@ -123,7 +114,7 @@ recipientsTo = ["lukas.dicke@statkraft.de"]
 
 processFilename = "AutomatedBidding_NordpoolAPI_CWE.exe"
 
-folderUpdateInfo = r"\\energycorp.com\common\Divsede\Operations\IT\APIs\NordpoolAPI_CWE"
+folderUpdateInfo = r"\\energycorp.com\common\Divsede\Operations\IT\APIs\NordpoolAPI_CWE\BidUpdateInfo"
 
 #path = r"\\energycorp.com\common\Divsede\Operations\IT\APIs\NordpoolAPI_CWE\64bit"
 path=r"\\energycorp.com\common\Divsede\Operations\Personal_OPS\Lukas\DevelopedApplications\NordpoolAPI_CWE\AutomatedBidding_NordpoolAPI_CWE\bin\Debug"
@@ -136,17 +127,11 @@ timestampBidPlacing = datetime.datetime.now().strftime('%H:%M:%S')
 
 time.sleep(10)
 
-latestBidUpdate = GetLatestBidUpdateInfo(datetime.datetime.strftime(datetime.date.today() + datetime.timedelta(days=daysAhead),"%Y%m%d"), exchangeName)
-
-sendEmailYesOrNo = latestBidUpdate['IsBidUpdatedComparedToFormerVersion']
-
-#sendEmailYesOrNo = True
-
-createdTimestamp = latestBidUpdate['CreationDate']
-
 if process.returncode != 0 :
 
     error = str(process.stdout) + "<br>Return-code: " + str( process.returncode)
+
+    error = str(process.stdout) + "<br>Return-code: " + str(process.returncode)
 
     print(error)
 
@@ -160,12 +145,17 @@ if process.returncode != 0 :
     sendEmailYesOrNo = True
 
 else:
+
+    latestBidUpdate = GetLatestBidUpdateInfo(datetime.datetime.strftime(datetime.date.today() + datetime.timedelta(days=daysAhead), "%Y%m%d"), exchangeName,environment)
+
+    sendEmailYesOrNo = latestBidUpdate['IsBidUpdatedComparedToFormerVersion']
+
+    createdTimestamp = latestBidUpdate['CreationDate']
+
     emailSubject = exchangeName + ": Exchange-bid successfully placed"
     messageHeader = "Hi colleagues on the intraday-desk,<br><br>"
 
     message = "Exchange-bid for '" + exchangeName + "' " + "(Environment: " + environment + "; Delivery-Date: " + str(delDate) + "; created: " + latestBidUpdate['CreationDate'] +")" +  " has been successfully placed at " + timestampBidPlacing + "<br><br>" + latestBidUpdate['UncPathLastBidPlaced'] + ".<br><br>"
-
-    #message = "Exchange-bid for '" + exchangeName + "' " + "(Environment: " + environment + "; Delivery-Date: " + str(delDate) + "; created: " + "" + ")" + " has been successfully placed at " + timestampBidPlacing + "<br><br>" +  "" + ".<br><br>"
 
     print("Exchange bidding successful!")
 

@@ -98,17 +98,28 @@ def GetLatestBidUpdateInfoFile(delDate, mergerName, environment):
     uncPath = os.path.join(folderUpdateInfo, fileUpdateInfo)
     return uncPath
 
+def GetContentConfigFile():
+    uncPath = r"\\energycorp.com\common\Divsede\Operations\IT\APIs\NordpoolAPI_CWE\ConfigDataNordpool.json"
+    with open(uncPath) as f:
+        d = json.load(f)
+    return d
+
+def GetClearname(exchangeName):
+    availables = GetContentConfigFile()["AvailableExchanges"]
+    clearname=""
+    for i in enumerate(availables):
+        if i[1]["Matchname"] == exchangeName:
+            clearname = i[1]["Clearname"]
+            break
+    return clearname
+
 exchangeName = str(exchangeName)
-
 daysAhead = int(daysAhead)
-
 environment = str(environment)
 
-#exchangeName = "nordpool_de_IDA1"
-
-#daysAhead = 1
-
-#environment="test"
+# exchangeName = "nordpool_de_IDA1"
+# daysAhead = 1
+# environment="test"
 
 recipientsTo = ["lukas.dicke@statkraft.de"]
 
@@ -125,7 +136,12 @@ delDate = datetime.datetime.strftime(datetime.date.today() + datetime.timedelta(
 
 timestampBidPlacing = datetime.datetime.now().strftime('%H:%M:%S')
 
-time.sleep(10)
+#time.sleep(10)
+
+exchangeClearName = GetClearname(exchangeName)
+
+if exchangeClearName=="":
+    exchangeClearName=exchangeName
 
 if process.returncode != 0 :
 
@@ -135,9 +151,9 @@ if process.returncode != 0 :
 
     print(error)
 
-    emailSubject = exchangeName + ": Error occurred when placing exchange-bid"
+    emailSubject = exchangeClearName + ": Error occurred when placing exchange-bid"
 
-    message = "Exchange-bid for '" + exchangeName + "' " + "(Environment: " + environment + "; Delivery-Date: " + str(delDate) + ")" + " could not be placed, because the following issue occurred:<br><br>" + error
+    message = "Exchange-bid for '" + exchangeClearName + "' " + "(Environment: " + environment + "; Delivery-Date: " + str(delDate) + ")" + " could not be placed, because the following issue occurred:<br><br>" + error
     print(message)
 
     messageHeader = "Hi colleagues on the intraday-desk,<br><br>please keep track on the issues below. Thanks.<br><br><br>"
@@ -152,10 +168,10 @@ else:
 
     createdTimestamp = latestBidUpdate['CreationDate']
 
-    emailSubject = exchangeName + ": Exchange-bid successfully placed"
+    emailSubject = exchangeClearName + ": Exchange-bid successfully placed (Del.: " + str(delDate) + "; Env.: " + environment + ")"
     messageHeader = "Hi colleagues on the intraday-desk,<br><br>"
 
-    message = "Exchange-bid for '" + exchangeName + "' " + "(Environment: " + environment + "; Delivery-Date: " + str(delDate) + "; created: " + latestBidUpdate['CreationDate'] +")" +  " has been successfully placed at " + timestampBidPlacing + "<br><br>" + latestBidUpdate['UncPathLastBidPlaced'] + ".<br><br>"
+    message = "Exchange-bid for '" + exchangeClearName + "' " + "(Environment: " + environment + "; Delivery-Date: " + str(delDate) + "; created: " + latestBidUpdate['CreationDate'] +")" +  " has been successfully placed at " + timestampBidPlacing + "<br><br>" + latestBidUpdate['UncPathLastBidPlaced'] + ".<br><br>"
 
     print("Exchange bidding successful!")
 
@@ -163,4 +179,3 @@ messageEnd = "<br><br>BR<br><br>Statkraft Operations"
 
 if sendEmailYesOrNo == True:
     SendMailPythonServer(send_to=recipientsTo, send_cc=[], send_bcc=[], subject=emailSubject,body=messageHeader + message + messageEnd, files=[])
-#exit(process.returncode)
